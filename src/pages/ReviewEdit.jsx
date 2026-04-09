@@ -95,6 +95,8 @@ export default function ReviewEdit() {
         }
 
         updateReportSections(id, translated);
+        setInlineEditedIds(new Set());
+        setOriginalSections(translated.map(s => ({ id: s.id, title: s.title, content: s.content })));
         setCurrentLang(lang);
         addChatMessage(id, "ai", `Report translated to ${lang}.`);
       }
@@ -212,6 +214,8 @@ export default function ReviewEdit() {
           updated.push(takeawaySection);
         }
         updateReportSections(id, updated);
+        setInlineEditedIds(new Set());
+        setOriginalSections(updated.map(s => ({ id: s.id, title: s.title, content: s.content })));
         addChatMessage(id, "ai", "Done. I've updated the explanation based on your instruction. Changes are shown on the right.");
       } else {
         addChatMessage(id, "ai", getAiResponse());
