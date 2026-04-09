@@ -114,6 +114,40 @@ export default function ReviewEdit() {
   };
   const activePrompts = selectedSection ? (secPrompts[selectedSection] || globalPrompts) : globalPrompts;
 
+  // Build merged section list with removed markers in original positions
+  const getMergedSections = () => {
+    if (!originalSections || removedSections.length === 0) return report.sections.map(s => ({ type: "section", data: s }));
+
+    const merged = [];
+    const currentByTitle = new Map(report.sections.map(s => [s.title, s]));
+    const removedTitles = new Set(removedSections.map(r => r.title));
+    const usedCurrent = new Set();
+
+    // Walk through original order, placing current or removed marker
+    for (const orig of originalSections) {
+      if (orig.id === "takeaways" || orig.title === "Key Takeaways") continue;
+      if (removedTitles.has(orig.title)) {
+        merged.push({ type: "removed", data: orig });
+      } else if (currentByTitle.has(orig.title)) {
+        merged.push({ type: "section", data: currentByTitle.get(orig.title) });
+        usedCurrent.add(orig.title);
+      }
+    }
+
+    // Add any new sections that weren't in original
+    for (const s of report.sections) {
+      if (!usedCurrent.has(s.title) && s.id !== "takeaways" && s.title !== "Key Takeaways") {
+        merged.push({ type: "section", data: s });
+      }
+    }
+
+    // Add takeaways at end
+    const tw = report.sections.find(s => s.id === "takeaways" || s.title === "Key Takeaways");
+    if (tw) merged.push({ type: "section", data: tw });
+
+    return merged;
+  };
+
   // Highlight changed text — only for inline edits
   const highlightChanges = (sectionId, currentContent) => {
     if (!originalSections || !inlineEditedIds.has(sectionId)) return currentContent;
@@ -359,7 +393,16 @@ export default function ReviewEdit() {
                   </div>
                 )}
                 <>
-                  {report.sections.map((s, i) => {
+                  {getMergedSections().map((item, i) => {
+                    if (item.type === "removed") {
+                      return (
+                        <div key={`removed-${i}`} className="mb-1 py-2 px-3">
+                          <span className="text-xs text-ink-faint bg-surface-raised px-2.5 py-1 rounded-full">Removed "{item.data.title}"</span>
+                        </div>
+                      );
+                    }
+
+                    const s = item.data;
                     const isSelected = selectedSection === s.id;
                     const isEditing = editingId === s.id;
                     const isTakeaways = s.id === "takeaways" || s.title === "Key Takeaways";
@@ -412,11 +455,6 @@ export default function ReviewEdit() {
                       </div>
                     );
                   })}
-                  {removedSections.map((rs, i) => (
-                    <div key={`removed-${i}`} className="mb-1 p-3 rounded-xl border border-dashed border-stroke">
-                      <span className="text-xs text-ink-faint bg-surface-raised px-2.5 py-1 rounded-full">Removed "{rs.title}"</span>
-                    </div>
-                  ))}
                   <div className="mt-3 p-4 rounded-lg bg-surface-raised">
                     <p className="text-sm text-ink-faint">ℹ This explanation is for informational purposes only and is not a substitute for professional medical advice.</p>
                   </div>
