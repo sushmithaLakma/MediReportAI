@@ -16,13 +16,29 @@ export default function ReviewEdit() {
   const [showOriginal, setShowOriginal] = useState(false);
   const [isAiTyping, setIsAiTyping] = useState(false);
   const [originalSections, setOriginalSections] = useState(null);
+  const [inlineEditedIds, setInlineEditedIds] = useState(new Set());
+  const [removedSections, setRemovedSections] = useState([]);
 
   // Store original sections on first load
   useEffect(() => {
     if (report?.sections && !originalSections) {
-      setOriginalSections(report.sections.map(s => ({ id: s.id, content: s.content })));
+      setOriginalSections(report.sections.map(s => ({ id: s.id, title: s.title, content: s.content })));
     }
   }, [report?.sections]);
+
+  // Detect removed sections when sections change
+  useEffect(() => {
+    if (!originalSections || !report?.sections) return;
+    const currentIds = new Set(report.sections.map(s => s.id));
+    const currentTitles = new Set(report.sections.map(s => s.title));
+    const removed = originalSections.filter(s =>
+      !currentIds.has(s.id) && !currentTitles.has(s.title) && s.id !== "takeaways" && s.title !== "Key Takeaways"
+    );
+    if (removed.length > 0) setRemovedSections(prev => {
+      const existing = new Set(prev.map(r => r.id));
+      return [...prev, ...removed.filter(r => !existing.has(r.id))];
+    });
+  }, [report?.sections, originalSections]);
   const [editingId, setEditingId] = useState(null);
   const [currentLang, setCurrentLang] = useState("English");
   const [isTranslating, setIsTranslating] = useState(false);
@@ -98,13 +114,12 @@ export default function ReviewEdit() {
   };
   const activePrompts = selectedSection ? (secPrompts[selectedSection] || globalPrompts) : globalPrompts;
 
-  // Highlight changed text by comparing original and current
+  // Highlight changed text — only for inline edits
   const highlightChanges = (sectionId, currentContent) => {
-    if (!originalSections) return currentContent;
+    if (!originalSections || !inlineEditedIds.has(sectionId)) return currentContent;
     const orig = originalSections.find(s => s.id === sectionId);
     if (!orig || orig.content === currentContent) return currentContent;
 
-    // Split into sentences and highlight changed ones
     const origSentences = orig.content.split(/(?<=[.!?])\s+/);
     const currSentences = currentContent.split(/(?<=[.!?])\s+/);
 
@@ -371,7 +386,7 @@ export default function ReviewEdit() {
                         }`}>
                         <div className="flex items-center justify-between mb-1.5">
                           <h3 className="text-lg font-semibold text-ink">{s.title}</h3>
-                          {s.edited && <span className="text-xs text-blue-500 bg-blue-100 px-2 py-0.5 rounded">Edited</span>}
+                          {inlineEditedIds.has(s.id) && <span className="text-xs text-blue-500 bg-blue-100 px-2 py-0.5 rounded">Edited</span>}
                         </div>
                         {isEditing ? (
                           <p
@@ -380,7 +395,10 @@ export default function ReviewEdit() {
                             onFocus={() => { setEditingId(s.id); setSelectedSection(s.id); }}
                             onBlur={(e) => {
                               const newText = e.currentTarget.textContent;
-                              if (newText !== s.content) updateSection(id, s.id, newText);
+                              if (newText !== s.content) {
+                                updateSection(id, s.id, newText);
+                                setInlineEditedIds(prev => new Set([...prev, s.id]));
+                              }
                               setEditingId(null);
                             }}
                             className="text-[0.9375rem] text-ink-secondary leading-[1.65] focus:outline-none"
@@ -389,11 +407,16 @@ export default function ReviewEdit() {
                           <p
                             className="text-[0.9375rem] text-ink-secondary leading-[1.65] cursor-text"
                             onClick={() => { setEditingId(s.id); setSelectedSection(s.id); }}
-                          >{s.edited ? highlightChanges(s.id, s.content) : s.content}</p>
+                          >{highlightChanges(s.id, s.content)}</p>
                         )}
                       </div>
                     );
                   })}
+                  {removedSections.map((rs, i) => (
+                    <div key={`removed-${i}`} className="mb-1 p-3 rounded-xl border border-dashed border-stroke">
+                      <span className="text-xs text-ink-faint bg-surface-raised px-2.5 py-1 rounded-full">Removed "{rs.title}"</span>
+                    </div>
+                  ))}
                   <div className="mt-3 p-4 rounded-lg bg-surface-raised">
                     <p className="text-sm text-ink-faint">ℹ This explanation is for informational purposes only and is not a substitute for professional medical advice.</p>
                   </div>
