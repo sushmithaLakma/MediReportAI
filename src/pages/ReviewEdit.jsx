@@ -186,10 +186,14 @@ export default function ReviewEdit() {
     setIsAiTyping(true);
 
     try {
-      const contentSections = report.sections.filter(s => s.id !== "takeaways" && s.title !== "Key Takeaways");
+      const summarySection = report.sections.find(s => s.id === "summary" || s.title === "Summary");
       const takeawaySection = report.sections.find(s => s.id === "takeaways" || s.title === "Key Takeaways");
-      const currentSections = contentSections.map(s => `## ${s.title}\n${s.content}`).join("\n\n");
-      const prompt = `Here is the current patient pathology explanation with sections:\n\n${currentSections}\n\nThe doctor wants the following change:\n"${msg}"\n\nApply the change. You may add, remove, rewrite, or modify any sections as needed. Return the complete updated explanation as JSON:\n{ "sections": [{ "title": "section heading", "content": "section content" }] }\n\nDo NOT include Key Takeaways in your response. Only return the main explanation sections.`;
+      const editableSections = report.sections.filter(s =>
+        s.id !== "takeaways" && s.title !== "Key Takeaways" &&
+        s.id !== "summary" && s.title !== "Summary"
+      );
+      const currentSections = editableSections.map(s => `## ${s.title}\n${s.content}`).join("\n\n");
+      const prompt = `Here is the current patient pathology explanation with sections:\n\n${currentSections}\n\nThe doctor wants the following change:\n"${msg}"\n\nApply the change. You may add, remove, rewrite, or modify any sections as needed. Return the complete updated explanation as JSON:\n{ "sections": [{ "title": "section heading", "content": "section content" }] }\n\nDo NOT include Summary or Key Takeaways. Only return the main explanation sections.`;
 
       const res = await fetch(`${API_URL}/api/generate`, {
         method: "POST",
@@ -202,17 +206,21 @@ export default function ReviewEdit() {
       const data = await res.json();
 
       if (data.sections && Array.isArray(data.sections)) {
-        const updated = data.sections.map((s, i) => ({
-          id: `section_${i}`,
-          title: s.title,
-          content: s.content,
-          edited: true,
-          added: null,
-        }));
-        // Re-append takeaways if they existed
-        if (takeawaySection) {
-          updated.push(takeawaySection);
-        }
+        const updated = [];
+        // Preserve summary at the start
+        if (summarySection) updated.push(summarySection);
+        // Add Gemini's updated sections
+        data.sections.forEach((s, i) => {
+          updated.push({
+            id: `section_${i}`,
+            title: s.title,
+            content: s.content,
+            edited: true,
+            added: null,
+          });
+        });
+        // Preserve takeaways at the end
+        if (takeawaySection) updated.push(takeawaySection);
         updateReportSections(id, updated);
         setInlineEditedIds(new Set());
         setOriginalSections(updated.map(s => ({ id: s.id, title: s.title, content: s.content })));
