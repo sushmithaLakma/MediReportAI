@@ -293,9 +293,14 @@ export default function ReviewEdit() {
               <span className="text-xs text-ink-muted uppercase tracking-widest font-medium">
                 AI-Generated Explanation
               </span>
-              {currentLang !== "English" && (
-                <span className="text-xs text-blue-500 font-medium bg-blue-100 px-2.5 py-1 rounded-full">{currentLang}</span>
-              )}
+              <div className="flex items-center gap-2">
+                {report.sections.some(s => s.edited) && (
+                  <span className="text-xs text-blue-500 font-medium bg-blue-100 px-2.5 py-1 rounded-full">Edited</span>
+                )}
+                {currentLang !== "English" && (
+                  <span className="text-xs text-blue-500 font-medium bg-blue-100 px-2.5 py-1 rounded-full">{currentLang}</span>
+                )}
+              </div>
             </div>
             <div className="flex-1 overflow-auto px-8 py-6" style={{ position: 'relative' }}>
                 {isTranslating && (
@@ -348,7 +353,6 @@ export default function ReviewEdit() {
                           }}
                           className="text-[0.9375rem] text-ink-secondary leading-[1.65] focus:outline-none"
                         >{s.content}</p>
-                        {s.edited && <span className="text-xs text-blue-500 mt-1.5 inline-block bg-blue-100 px-2 py-0.5 rounded">Edited</span>}
                       </div>
                     );
                   })}
