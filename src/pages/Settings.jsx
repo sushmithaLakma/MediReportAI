@@ -65,35 +65,40 @@ export default function Settings() {
             </button>
           </div>
 
-          {/* Branding */}
+          {/* Logo upload */}
           <div className="mb-10">
-            <h2 className="text-sm text-ink-secondary uppercase tracking-widest font-semibold mb-5">Branding</h2>
-            <label className="text-sm font-medium text-ink-muted mb-2.5 block">Practice Logo</label>
             <div className="flex items-center gap-4">
               {form.logo ? (
                 <div className="w-16 h-16 rounded-lg border border-stroke overflow-hidden flex-shrink-0 bg-surface-raised">
                   <img src={form.logo} alt="Logo" className="w-full h-full object-contain" />
                 </div>
               ) : (
-                <div className="w-16 h-16 rounded-lg border border-stroke flex items-center justify-center flex-shrink-0 bg-surface-raised">
-                  <span className="text-xs text-ink-faint">No logo</span>
+                <div className="w-16 h-16 rounded-lg border-2 border-dashed border-stroke flex items-center justify-center flex-shrink-0 bg-surface-raised cursor-pointer hover:border-ink-faint transition-colors" onClick={() => logoInputRef.current?.click()}>
+                  <span className="text-xs text-ink-faint text-center leading-tight">Upload<br/>logo</span>
                 </div>
               )}
-              <div className="flex gap-2">
+              <div>
                 <input ref={logoInputRef} type="file" accept=".png,.jpg,.jpeg,.svg" onChange={handleLogoUpload} className="hidden" />
-                <button onClick={() => logoInputRef.current?.click()}
-                  className="h-9 px-4 rounded-lg border border-stroke text-sm text-ink-secondary cursor-pointer hover:bg-surface-raised transition-colors">
-                  {form.logo ? "Change" : "Upload"}
-                </button>
-                {form.logo && (
-                  <button onClick={() => update("logo", "")}
-                    className="h-9 px-4 rounded-lg border border-stroke text-sm text-ink-muted cursor-pointer hover:bg-surface-raised transition-colors">
-                    Remove
+                {form.logo ? (
+                  <div className="flex gap-2">
+                    <button onClick={() => logoInputRef.current?.click()}
+                      className="h-9 px-4 rounded-lg border border-stroke text-sm text-ink-secondary cursor-pointer hover:bg-surface-raised transition-colors">
+                      Change
+                    </button>
+                    <button onClick={() => update("logo", "")}
+                      className="h-9 px-4 rounded-lg border border-stroke text-sm text-ink-muted cursor-pointer hover:bg-surface-raised transition-colors">
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={() => logoInputRef.current?.click()}
+                    className="h-9 px-4 rounded-lg border border-stroke text-sm text-ink-secondary cursor-pointer hover:bg-surface-raised transition-colors">
+                    Upload your logo
                   </button>
                 )}
+                <p className="text-xs text-ink-faint mt-1.5">PNG, JPG, or SVG. Shown on reports and PDFs.</p>
               </div>
             </div>
-            <p className="text-xs text-ink-faint mt-2">PNG, JPG, or SVG. Shown on reports and PDFs.</p>
           </div>
 
           {fields.map((group) => (

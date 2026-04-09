@@ -109,10 +109,7 @@ export default function ReviewEdit() {
 
     try {
       const currentSections = report.sections.map(s => `## ${s.title}\n${s.content}`).join("\n\n");
-      const targetSection = selectedSection ? report.sections.find(s => s.id === selectedSection) : null;
-      const prompt = targetSection
-        ? `Here is the current explanation:\n\n${currentSections}\n\nThe doctor wants you to edit the section "${targetSection.title}".\nInstruction: ${msg}\n\nReturn the updated section content only as JSON: { "title": "${targetSection.title}", "content": "updated content" }`
-        : `Here is the current explanation:\n\n${currentSections}\n\nThe doctor wants the following change applied across the explanation:\nInstruction: ${msg}\n\nReturn all updated sections as JSON: { "sections": [{ "title": "...", "content": "..." }] }`;
+      const prompt = `Here is the current patient pathology explanation with sections:\n\n${currentSections}\n\nThe doctor wants the following change:\n"${msg}"\n\nApply the change. You may add, remove, rewrite, or modify any sections as needed. Return the complete updated explanation as JSON:\n{ "sections": [{ "title": "section heading", "content": "section content" }] }\n\nOnly return sections that should remain. If the doctor asks to remove a section, do not include it in the response.`;
 
       const res = await fetch(`${API_URL}/api/generate`, {
         method: "POST",
@@ -124,12 +121,9 @@ export default function ReviewEdit() {
 
       const data = await res.json();
 
-      if (targetSection && data.content) {
-        updateSection(id, targetSection.id, data.content);
-        addChatMessage(id, "ai", `Done. I've updated "${targetSection.title}" based on your instruction.`);
-      } else if (data.sections && Array.isArray(data.sections)) {
+      if (data.sections && Array.isArray(data.sections)) {
         const updated = data.sections.map((s, i) => ({
-          id: report.sections[i]?.id || `section_${i}`,
+          id: `section_${i}`,
           title: s.title,
           content: s.content,
           edited: true,
