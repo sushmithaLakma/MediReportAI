@@ -108,8 +108,10 @@ export default function ReviewEdit() {
     setIsAiTyping(true);
 
     try {
-      const currentSections = report.sections.map(s => `## ${s.title}\n${s.content}`).join("\n\n");
-      const prompt = `Here is the current patient pathology explanation with sections:\n\n${currentSections}\n\nThe doctor wants the following change:\n"${msg}"\n\nApply the change. You may add, remove, rewrite, or modify any sections as needed. Return the complete updated explanation as JSON:\n{ "sections": [{ "title": "section heading", "content": "section content" }] }\n\nOnly return sections that should remain. If the doctor asks to remove a section, do not include it in the response.`;
+      const contentSections = report.sections.filter(s => s.id !== "takeaways" && s.title !== "Key Takeaways");
+      const takeawaySection = report.sections.find(s => s.id === "takeaways" || s.title === "Key Takeaways");
+      const currentSections = contentSections.map(s => `## ${s.title}\n${s.content}`).join("\n\n");
+      const prompt = `Here is the current patient pathology explanation with sections:\n\n${currentSections}\n\nThe doctor wants the following change:\n"${msg}"\n\nApply the change. You may add, remove, rewrite, or modify any sections as needed. Return the complete updated explanation as JSON:\n{ "sections": [{ "title": "section heading", "content": "section content" }] }\n\nDo NOT include Key Takeaways in your response. Only return the main explanation sections.`;
 
       const res = await fetch(`${API_URL}/api/generate`, {
         method: "POST",
@@ -129,6 +131,10 @@ export default function ReviewEdit() {
           edited: true,
           added: null,
         }));
+        // Re-append takeaways if they existed
+        if (takeawaySection) {
+          updated.push(takeawaySection);
+        }
         updateReportSections(id, updated);
         addChatMessage(id, "ai", "Done. I've updated the explanation based on your instruction. Changes are shown on the right.");
       } else {
