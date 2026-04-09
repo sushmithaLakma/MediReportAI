@@ -13,7 +13,7 @@ export default function PatientView() {
     return () => { window.speechSynthesis?.cancel(); };
   }, []);
 
-  const sections = report?.sections?.filter(s => s.id !== "takeaways" && s.title !== "Key Takeaways") || [];
+  const sections = report?.sections?.filter(s => s.id !== "takeaways" && s.title !== "Key Takeaways" && s.id !== "summary" && s.title !== "Summary") || [];
   const takeawaySection = report?.sections?.find(s => s.id === "takeaways" || s.title === "Key Takeaways");
   const takeaways = takeawaySection
     ? takeawaySection.content.split(" · ").map(t => t.trim()).filter(Boolean)
@@ -21,7 +21,8 @@ export default function PatientView() {
 
   const buildReadText = useCallback(() => {
     const lines = [];
-    lines.push("Your pathology report shows a diagnosis of breast carcinoma. This cancer was caught and your medical team will plan the most appropriate next steps for you.");
+    const summary = report?.sections?.find(s => s.id === "summary" || s.title === "Summary");
+    if (summary) lines.push(summary.content);
     sections.forEach((s) => {
       lines.push(s.title);
       lines.push(s.content);
@@ -158,9 +159,10 @@ export default function PatientView() {
           </div>
 
           {/* Summary */}
-          <p className="text-base text-ink-secondary leading-[1.6] mb-8">
-            Your pathology report shows a diagnosis of breast carcinoma. This cancer was caught and your medical team will plan the most appropriate next steps for you.
-          </p>
+          {(() => {
+            const summary = report.sections.find(s => s.id === "summary" || s.title === "Summary");
+            return summary ? <p className="text-base text-ink-secondary leading-[1.6] mb-8">{summary.content}</p> : null;
+          })()}
 
           {/* Sections */}
           {sections.map((s, i) => (

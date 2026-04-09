@@ -52,17 +52,21 @@ export default function ReviewEdit() {
     setShowLangMenu(false);
     setIsTranslating(true);
 
-    const sectionsText = report.sections
-      .filter(s => s.id !== "takeaways")
-      .map(s => `## ${s.title}\n${s.content}`)
-      .join("\n\n");
-
+    const summarySection = report.sections.find(s => s.id === "summary" || s.title === "Summary");
     const takeawaySection = report.sections.find(s => s.id === "takeaways" || s.title === "Key Takeaways");
-    const takeawaysText = takeawaySection ? `\n\nKey Takeaways: ${takeawaySection.content}` : "";
+    const editableSections = report.sections.filter(s =>
+      s.id !== "takeaways" && s.title !== "Key Takeaways" &&
+      s.id !== "summary" && s.title !== "Summary"
+    );
+    const sectionsText = editableSections.map(s => `## ${s.title}\n${s.content}`).join("\n\n");
+    const summaryText = summarySection ? `Summary: ${summarySection.content}\n\n` : "";
+    const takeawaysText = takeawaySection ? `\nKey Takeaways: ${takeawaySection.content}` : "";
+
+    const allText = `${summaryText}${sectionsText}${takeawaysText}`;
 
     const prompt = lang === "English"
-      ? `Translate the following patient pathology explanation back to English. Keep the same section structure. Return as JSON: { "sections": [{ "title": "...", "content": "..." }] }${takeawaysText ? `, "takeaways": ["..."]` : ""}\n\n${sectionsText}${takeawaysText}`
-      : `Translate the following patient pathology explanation into ${lang}. Keep the same section structure and tone — warm, clear, patient-friendly. Translate headings too. Return as JSON: { "sections": [{ "title": "...", "content": "..." }]${takeawaysText ? `, "takeaways": ["..."]` : ""} }\n\n${sectionsText}${takeawaysText}`;
+      ? `Translate the following patient pathology explanation back to English. Keep the exact same structure. Return as JSON: { "summary": "...", "sections": [{ "title": "...", "content": "..." }], "takeaways": ["..."] }\n\n${allText}`
+      : `Translate the following patient pathology explanation into ${lang}. Keep the exact same structure and tone. Translate everything including headings. Return as JSON: { "summary": "...", "sections": [{ "title": "...", "content": "..." }], "takeaways": ["..."] }\n\n${allText}`;
 
     try {
       const res = await fetch(`${API_URL}/api/generate`, {
@@ -76,22 +80,23 @@ export default function ReviewEdit() {
       const data = await res.json();
 
       if (data.sections && Array.isArray(data.sections)) {
-        const translated = data.sections.map((s, i) => ({
-          id: report.sections[i]?.id || `section_${i}`,
-          title: s.title,
-          content: s.content,
-          edited: false,
-          added: null,
-        }));
+        const translated = [];
+
+        // Preserve/translate summary
+        if (data.summary) {
+          translated.push({ id: "summary", title: lang === "English" ? "Summary" : (data.summaryTitle || "Summary"), content: data.summary, edited: false, added: null });
+        } else if (summarySection) {
+          translated.push(summarySection);
+        }
+
+        data.sections.forEach((s, i) => {
+          translated.push({ id: `section_${i}`, title: s.title, content: s.content, edited: false, added: null });
+        });
 
         if (data.takeaways && data.takeaways.length > 0) {
-          translated.push({
-            id: "takeaways",
-            title: lang === "English" ? "Key Takeaways" : data.sections.length > 0 ? "Key Takeaways" : "Key Takeaways",
-            content: data.takeaways.join(" · "),
-            edited: false,
-            added: null,
-          });
+          translated.push({ id: "takeaways", title: "Key Takeaways", content: data.takeaways.join(" · "), edited: false, added: null });
+        } else if (takeawaySection) {
+          translated.push(takeawaySection);
         }
 
         updateReportSections(id, translated);

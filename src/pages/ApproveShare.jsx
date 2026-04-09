@@ -28,9 +28,9 @@ export default function ApproveShare() {
     lines.push(`Prepared by ${user.name} · ${user.hospital}`);
     lines.push(`Patient ID: ${report.id} | Age: 82 | Gender: Male | Date: 5 Apr 2026`);
     lines.push("");
-    lines.push("Your pathology report shows a diagnosis of breast carcinoma. This cancer was caught and your medical team will plan the most appropriate next steps for you.");
-    lines.push("");
-    report.sections.forEach((s) => {
+    const summary = report.sections.find(s => s.id === "summary" || s.title === "Summary");
+    if (summary) { lines.push(summary.content); lines.push(""); }
+    report.sections.filter(s => s.id !== "summary" && s.title !== "Summary" && s.id !== "takeaways" && s.title !== "Key Takeaways").forEach((s) => {
       lines.push(s.title);
       lines.push(s.content);
       lines.push("");
@@ -170,9 +170,9 @@ export default function ApproveShare() {
           <div><div class="patient-label">Date</div><div class="patient-value">5 Apr 2026</div></div>
         </div>
 
-        <div class="summary">Your pathology report shows a diagnosis of breast carcinoma. This cancer was caught and your medical team will plan the most appropriate next steps for you.</div>
+        ${(() => { const sm = report.sections.find(s => s.id === "summary" || s.title === "Summary"); return sm ? `<div class="summary">${sm.content}</div>` : ""; })()}
 
-        ${report.sections.map(s => `<div class="section"><div class="section-title">${s.title}</div><div class="section-content">${s.content}</div></div>`).join("")}
+        ${report.sections.filter(s => s.id !== "takeaways" && s.title !== "Key Takeaways" && s.id !== "summary" && s.title !== "Summary").map(s => `<div class="section"><div class="section-title">${s.title}</div><div class="section-content">${s.content}</div></div>`).join("")}
 
         <div class="takeaways">
           <div class="takeaways-label">Key Takeaways</div>
@@ -325,11 +325,14 @@ export default function ApproveShare() {
               </div>
 
               {/* Report content */}
-              <p className="text-base text-ink-secondary leading-[1.6] mb-8">
-                Your pathology report shows a diagnosis of breast carcinoma. This cancer was caught and your medical team will plan the most appropriate next steps for you.
-              </p>
+              {(() => {
+                const summary = report.sections.find(s => s.id === "summary" || s.title === "Summary");
+                return summary ? (
+                  <p className="text-base text-ink-secondary leading-[1.6] mb-8">{summary.content}</p>
+                ) : null;
+              })()}
 
-              {report.sections.filter(s => s.id !== "takeaways" && s.title !== "Key Takeaways").map((s, i) => (
+              {report.sections.filter(s => s.id !== "takeaways" && s.title !== "Key Takeaways" && s.id !== "summary" && s.title !== "Summary").map((s, i) => (
                 <div key={i} className="mb-6">
                   <h3 className="text-lg font-bold text-ink mb-1.5">{s.title}</h3>
                   <p className="text-base text-ink-secondary leading-[1.6]">{s.content}</p>
