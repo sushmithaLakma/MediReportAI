@@ -1,0 +1,87 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #1a1d2b;
+  --color-ink-secondary: #4a4d5e;
+  --color-ink-muted: #8b8ea0;
+  --color-ink-faint: #b4b7c6;
+  --color-surface: #ffffff;
+  --color-surface-raised: #f7f7f9;
+  --color-surface-sunken: #f0f0f4;
+  --color-stroke: #e4e5eb;
+  --color-stroke-subtle: #ededf1;
+  --color-accent-green: #2d6a4f;
+  --color-accent-green-bg: #edf7f0;
+  --color-accent-amber: #d97706;
+  --color-accent-amber-bg: #fef9ee;
+  --color-highlight: #E8EFF7;
+  --color-blue-900: #1E3A5F;
+  --color-blue-700: #2D5A8E;
+  --color-blue-500: #4A6FA5;
+  --color-blue-100: #E8EFF7;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 100%; /* Respects browser settings — 1rem = user's preferred size (usually 16px) */
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--color-ink);
+  background: var(--color-surface);
+  line-height: 1.45;
+}
+
+input::placeholder {
+  color: var(--color-ink-faint);
+}
+
+.focus-wrapper:focus-within {
+  border-color: var(--color-blue-500);
+  box-shadow: 0 0 0 2px rgba(74, 111, 165, 0.1);
+}
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-stroke); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-ink-faint); }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.25s ease-out both;
+}
+
+/* Dark mode overrides */
+.dark {
+  --color-ink: #e8e9ed;
+  --color-ink-secondary: #b0b3c0;
+  --color-ink-muted: #7a7d8e;
+  --color-ink-faint: #555768;
+  --color-surface: #111318;
+  --color-surface-raised: #1a1c24;
+  --color-surface-sunken: #22252e;
+  --color-stroke: #2a2d38;
+  --color-stroke-subtle: #232630;
+  --color-highlight: #3d3520;
+}
+
+.dark body {
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
