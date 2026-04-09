@@ -15,6 +15,14 @@ export default function ReviewEdit() {
   const [selectedSection, setSelectedSection] = useState(null);
   const [showOriginal, setShowOriginal] = useState(false);
   const [isAiTyping, setIsAiTyping] = useState(false);
+  const [originalSections, setOriginalSections] = useState(null);
+
+  // Store original sections on first load
+  useEffect(() => {
+    if (report?.sections && !originalSections) {
+      setOriginalSections(report.sections.map(s => ({ id: s.id, content: s.content })));
+    }
+  }, [report?.sections]);
   const [editingId, setEditingId] = useState(null);
   const [currentLang, setCurrentLang] = useState("English");
   const [isTranslating, setIsTranslating] = useState(false);
@@ -89,6 +97,25 @@ export default function ReviewEdit() {
     steps: ["Add more detail", "Mention specific tests", "Make more practical"],
   };
   const activePrompts = selectedSection ? (secPrompts[selectedSection] || globalPrompts) : globalPrompts;
+
+  // Highlight changed text by comparing original and current
+  const highlightChanges = (sectionId, currentContent) => {
+    if (!originalSections) return currentContent;
+    const orig = originalSections.find(s => s.id === sectionId);
+    if (!orig || orig.content === currentContent) return currentContent;
+
+    // Split into sentences and highlight changed ones
+    const origSentences = orig.content.split(/(?<=[.!?])\s+/);
+    const currSentences = currentContent.split(/(?<=[.!?])\s+/);
+
+    return currSentences.map((sentence, i) => {
+      const isChanged = !origSentences.includes(sentence);
+      if (isChanged) {
+        return <span key={i} style={{ backgroundColor: '#fef9c3', borderRadius: '2px', padding: '0 1px' }}>{sentence}{i < currSentences.length - 1 ? ' ' : ''}</span>;
+      }
+      return <span key={i}>{sentence}{i < currSentences.length - 1 ? ' ' : ''}</span>;
+    });
+  };
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [report?.chatHistory?.length, isAiTyping]);
   useEffect(() => {
@@ -299,14 +326,9 @@ export default function ReviewEdit() {
               <span className="text-xs text-ink-muted uppercase tracking-widest font-medium">
                 AI-Generated Explanation
               </span>
-              <div className="flex items-center gap-2">
-                {report.sections.some(s => s.edited) && (
-                  <span className="text-xs text-blue-500 font-medium bg-blue-100 px-2.5 py-1 rounded-full">Edited</span>
-                )}
-                {currentLang !== "English" && (
-                  <span className="text-xs text-blue-500 font-medium bg-blue-100 px-2.5 py-1 rounded-full">{currentLang}</span>
-                )}
-              </div>
+              {currentLang !== "English" && (
+                <span className="text-xs text-blue-500 font-medium bg-blue-100 px-2.5 py-1 rounded-full">{currentLang}</span>
+              )}
             </div>
             <div className="flex-1 overflow-auto px-8 py-6" style={{ position: 'relative' }}>
                 {isTranslating && (
@@ -347,18 +369,28 @@ export default function ReviewEdit() {
                         className={`mb-1 p-3 rounded-xl transition-all ${
                           isEditing ? "border border-blue-500/30 bg-blue-100/40" : "border border-transparent hover:border-stroke cursor-pointer"
                         }`}>
-                        <h3 className="text-lg font-semibold text-ink mb-1.5">{s.title}</h3>
-                        <p
-                          contentEditable
-                          suppressContentEditableWarning
-                          onFocus={() => { setEditingId(s.id); setSelectedSection(s.id); }}
-                          onBlur={(e) => {
-                            const newText = e.currentTarget.textContent;
-                            if (newText !== s.content) updateSection(id, s.id, newText);
-                            setEditingId(null);
-                          }}
-                          className="text-[0.9375rem] text-ink-secondary leading-[1.65] focus:outline-none"
-                        >{s.content}</p>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <h3 className="text-lg font-semibold text-ink">{s.title}</h3>
+                          {s.edited && <span className="text-xs text-blue-500 bg-blue-100 px-2 py-0.5 rounded">Edited</span>}
+                        </div>
+                        {isEditing ? (
+                          <p
+                            contentEditable
+                            suppressContentEditableWarning
+                            onFocus={() => { setEditingId(s.id); setSelectedSection(s.id); }}
+                            onBlur={(e) => {
+                              const newText = e.currentTarget.textContent;
+                              if (newText !== s.content) updateSection(id, s.id, newText);
+                              setEditingId(null);
+                            }}
+                            className="text-[0.9375rem] text-ink-secondary leading-[1.65] focus:outline-none"
+                          >{s.content}</p>
+                        ) : (
+                          <p
+                            className="text-[0.9375rem] text-ink-secondary leading-[1.65] cursor-text"
+                            onClick={() => { setEditingId(s.id); setSelectedSection(s.id); }}
+                          >{s.edited ? highlightChanges(s.id, s.content) : s.content}</p>
+                        )}
                       </div>
                     );
                   })}
